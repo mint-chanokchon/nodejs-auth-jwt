@@ -1,0 +1,4 @@
+
+- https://stackoverflow.com/questions/51790155/node-js-await-catch-not-returning
+
+- https://stackoverflow.com/questions/73520145/jsonwebtoken-invalid-token

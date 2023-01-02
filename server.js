@@ -130,7 +130,7 @@ function authentication() {
             })
         }).catch(err => {
             res.status(400).json(setResponseReturn('invalid token', null))
-            return undefined;
+            return undefined; // if token invalid, return undefined
         })
 
         // save payload to req
