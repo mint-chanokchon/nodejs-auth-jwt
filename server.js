@@ -19,17 +19,18 @@ mysqlConn.connect((err) => {
     if (err) {
         throw new Error(err)
     }
-    console.log('Connection successful')
 });
 
 const app = express()
+const routes = express.Router() // for route with out auth
+const routesAuth = express.Router() // for route with auth
 
 // middleware
 app.use(express.json())
 app.use(cors())
 
 // register api
-app.post('/register', async (req, res) => {
+routes.post('/register', async (req, res) => {
     const email = req.body?.email
     const password = req.body?.password
     const fname = req.body?.fname 
@@ -54,7 +55,7 @@ app.post('/register', async (req, res) => {
     res.status(201).json(setResponseReturn('Successful.', null))
 })
 
-app.post('/login', async (req, res) => {
+routes.post('/login', async (req, res) => {
     const email = req.body?.email
     const password = req.body?.password
 
@@ -84,10 +85,20 @@ app.post('/login', async (req, res) => {
     res.status(200).json(setResponseReturn('Successful.', token))
 })
 
-app.get('/', [authentication()], async (req, res, next) => {
-    console.log(req.userPayload)
-    res.status(200).send()
+routesAuth.get('/', [authentication()], async (req, res, next) => {
+    const users = await new Promise((resolve, reject) => {
+        const query = 'SELECT * FROM users'
+        mysqlConn.query(query, (error, results, fields) => {
+            if (error) reject(error)
+            resolve(results)
+        })
+    })
+
+    res.status(200).send(setResponseReturn('Succcessful.', users))
 })
+
+app.use(routes)
+app.use(routesAuth)
 
 // start server
 app.listen(PORT, () => console.log(`Server start at http://localhost:${PORT}`))
@@ -101,13 +112,13 @@ function setResponseReturn(message, data) {
 function authentication() {
     return async (req, res, next) => {
         let bearerToken = req.headers?.authorization
-        
+
         // check token is undefined
         if (!bearerToken) return res.status(401).send()
-        
+
         // split from 'Bearer' and 'token'
         bearerToken = bearerToken.split(' ')
-        if(bearerToken.length > 2) return res.status(400).send()
+        if (bearerToken.length > 2) return res.status(400).send()
 
         const token = bearerToken[1]
 
@@ -119,10 +130,13 @@ function authentication() {
             })
         }).catch(err => {
             res.status(400).json(setResponseReturn('invalid token', null))
+            return undefined;
         })
 
         // save payload to req
-        req.userPayload = userPayload
-        next()
+        if (userPayload) {
+            req.userPayload = userPayload
+            next()
+        }
     }
 }
