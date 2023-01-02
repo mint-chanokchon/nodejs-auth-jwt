@@ -97,16 +97,21 @@ function setResponseReturn(message, data) {
     return { message: message, data: data }
 }
 
+// for check client send token on header
 function authentication() {
     return async (req, res, next) => {
         let bearerToken = req.headers?.authorization
+        
+        // check token is undefined
         if (!bearerToken) return res.status(401).send()
         
+        // split from 'Bearer' and 'token'
         bearerToken = bearerToken.split(' ')
         if(bearerToken.length > 2) return res.status(400).send()
 
         const token = bearerToken[1]
 
+        // get payload
         const userPayload = await new Promise((resolve, reject) => {
             jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
                 if (err) reject(err)
@@ -116,6 +121,7 @@ function authentication() {
             res.status(400).json(setResponseReturn('invalid token', null))
         })
 
+        // save payload to req
         req.userPayload = userPayload
         next()
     }
